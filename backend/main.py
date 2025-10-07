@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
-from app.core.database import init_db, engine
-from app.models import *  # Import all models to register them
+
+from database import engine, Base, get_db
+from models import User
+from routers import auth
+
+# This line tells SQLAlchemy to create all tables
+Base.metadata.create_all(bind=engine)
 
 # Create FastAPI app
 app = FastAPI(
@@ -10,7 +16,7 @@ app = FastAPI(
     version=settings.APP_VERSION,
     description="AI-powered job application platform with Tinder-like swiping interface",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # CORS Configuration
@@ -45,18 +51,17 @@ async def root():
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "status": "running",
-        "docs": "/docs"
+        "docs": "/docs",
     }
 
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "database": "connected"
-    }
+    return {"status": "healthy", "database": "connected"}
 
+
+app.include_router(auth.router, prefix="/api", tags=["auth"])
 
 # Include API routers
 # from app.api.v1 import api_router
@@ -65,9 +70,7 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-        "main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG
+        "main:app", host=settings.HOST, port=settings.PORT, reload=settings.DEBUG
     )
